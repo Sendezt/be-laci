@@ -7,6 +7,7 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
+    seed: 'ts-node src/prisma/seed.ts',
   },
   datasource: {
     url: env('DIRECT_URL'), // pakai session-mode URL (5432) untuk migrasi/db pull

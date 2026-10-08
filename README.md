@@ -179,9 +179,8 @@ Create a `.env` file in the root of the backend project.
 
 ```env
 PORT=3001
-
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+DIRECT_URL=
 ```
 
 | Variable                    | Description                     |
