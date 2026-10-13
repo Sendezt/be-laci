@@ -5,10 +5,15 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { validateEnv } from './config/env.validation';
 import { CategoriesModule } from './categories/categories.module';
-import { AuthModule} from './auth/auth.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({isGlobal: true, validate: validateEnv}), PrismaModule, AuthModule, CategoriesModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    PrismaModule,
+    AuthModule,
+    CategoriesModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
