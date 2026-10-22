@@ -1,26 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-import { PrismaService } from './prisma/prisma.service';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly appService: AppService,
-  ) {}
-
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  @Get('db-test')
-  async databaseTest() {
-    const categories = await this.prisma.categories.findMany();
-
+  getHello() {
     return {
-      succes: true,
-      data: categories,
+      status: true,
+      message: 'Welcome to LACI API',
+      endpoints: ['/api/auth', '/api/categories', '/api/products'],
+      serverTime: new Date().toLocaleDateString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+      }),
     };
   }
 }
