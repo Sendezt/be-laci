@@ -9,6 +9,7 @@ import { validateEnv } from './config/env.validation';
 import { CategoriesModule } from './categories/categories.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './products/product.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProductModule } from './products/product.module';
       },
     ]),
     PrismaModule,
+    SupabaseModule,
     AuthModule,
     CategoriesModule,
     ProductModule,

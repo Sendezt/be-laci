@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
@@ -14,7 +15,10 @@ import { transformAuthInfo } from 'passport';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   // Ambil daftar produk dengan pagination + filter
   // Endpoint publik : default is_active = true
@@ -161,5 +165,45 @@ export class ProductService {
     });
 
     return { message: 'Produk berhasil dinonaktifkan' };
+  }
+
+  // Upload Image
+  async uploadImage(id: string, file: Express.Multer.File) {
+    const product = await this.prisma.products.findUnique({ where: { id } });
+    if (!product) throw new NotFoundException('Produk tidak ditemukan');
+
+    const { publicUrl } = await this.storage.uploadProductImage(file, id);
+
+    if (product.image_url) {
+      const oldPath = this.storage.extractPathFromUrl(product.image_url);
+      if (oldPath) await this.storage.deleteByPath(oldPath);
+    }
+
+    return this.prisma.products.update({
+      where: { id },
+      data: { image_url: publicUrl },
+      select: {
+        id: true,
+        name: true,
+        image_url: true,
+        updated_at: true,
+      },
+    });
+  }
+
+  async removeImage(id: string) {
+    const product = await this.prisma.products.findUnique({ where: { id } });
+    if (!product) throw new NotFoundException('Produk tidak ditemukan');
+    if (!product.image_url) return { message: 'Produk tidak punya gambar' };
+
+    const path = this.storage.extractPathFromUrl(product.image_url);
+    if (path) await this.storage.deleteByPath(path);
+
+    await this.prisma.products.update({
+      where: { id },
+      data: { image_url: null },
+    });
+
+    return { message: 'Gambar berhasil dihapus' };
   }
 }

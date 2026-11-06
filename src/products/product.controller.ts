@@ -11,6 +11,9 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -20,6 +23,11 @@ import { QueryProductDto } from './dto/query-product.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+
+const MAX_SIZE = 5 * 1024 * 1024; // 5 mb
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Controller('products')
 export class ProductController {
@@ -70,5 +78,38 @@ export class ProductController {
   @HttpCode(HttpStatus.OK)
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.products.remove(id);
+  }
+
+  @Post(':id/image')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(), // ⬅️ PENTING: bukan diskStorage
+      limits: { fileSize: MAX_SIZE },
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_MIME.includes(file.mimetype)) {
+          return cb(
+            new BadRequestException('Format gambar harus JPEG, PNG, atau WebP'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('File gambar wajib diunggah');
+    return this.products.uploadImage(id, file);
+  }
+
+  @Delete(':id/image')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  removeImage(@Param('id', ParseUUIDPipe) id: string) {
+    return this.products.removeImage(id);
   }
 }
