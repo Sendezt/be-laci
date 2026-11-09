@@ -10,6 +10,7 @@ import { StorageService } from '../common/storage/storage.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
+import { QueryProductAdminDto } from './dto/query-product-admin.dto';
 import { filter } from 'rxjs';
 import { transformAuthInfo } from 'passport';
 
@@ -20,35 +21,57 @@ export class ProductService {
     private readonly storage: StorageService,
   ) {}
 
-  // Ambil daftar produk dengan pagination + filter
-  // Endpoint publik : default is_active = true
-  // Endpoint admin : bisa override is_active via Query
-  async findAll(query: QueryProductDto) {
+  // Public Endpoint
+  async findAllPublic(query: QueryProductDto) {
+    return this.findAll(query, { is_active: true });
+  }
+
+  async findOnePublic(id: string) {
+    const product = await this.prisma.products.findFirst({
+      where: { id, is_active: true },
+      include: { categories: { select: { id: true, name: true } } },
+    });
+
+    if (!product) throw new NotFoundException('Produk tidak ditemukan');
+    return product;
+  }
+
+  // Admin Endpoint
+  async findAllAdmin(query: QueryProductAdminDto) {
+    const extraWhere: Prisma.productsWhereInput = {};
+    if (query.is_active !== undefined) {
+      extraWhere.is_active = query.is_active;
+    }
+    return this.findAll(query, extraWhere);
+  }
+
+  async findOneAdmin(id: string) {
+    const product = await this.prisma.products.findUnique({
+      where: { id },
+      include: { categories: { select: { id: true, name: true } } },
+    });
+    if (!product) throw new NotFoundException('Produk tidak ditemukan');
+    return product;
+  }
+
+  // Shared (Private)
+  private async findAll(
+    query: QueryProductDto,
+    extraWhere: Prisma.productsWhereInput,
+  ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.productsWhereInput = {};
+    const where: Prisma.productsWhereInput = {
+      ...extraWhere,
+      ...(query.category_id && { category_id: query.category_id }),
+      ...(query.search && {
+        name: { contains: query.search, mode: 'insensitive' },
+      }),
+    };
 
-    // Default publik: hanya produk aktif
-    // Kalau admin kirim is_active, pakai nilai itu (bisa true/false/all)
-    if (query.is_active !== undefined) {
-      where.is_active = query.is_active;
-    } else {
-      where.is_active = true;
-    }
-
-    if (query.category_id) {
-      where.category_id = query.category_id;
-    }
-
-    if (query.search) {
-      where.name = {
-        contains: query.search,
-        mode: `insensitive`,
-      };
-    }
-
+    // Sesuai PRD: pakai $transaction untuk findMany + count
     const [data, total] = await this.prisma.$transaction([
       this.prisma.products.findMany({
         where,

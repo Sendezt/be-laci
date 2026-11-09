@@ -20,6 +20,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { QueryProductDto } from './dto/query-product.dto';
+import { QueryProductAdminDto } from './dto/query-product-admin.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -33,15 +34,30 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 export class ProductController {
   constructor(private readonly products: ProductService) {}
 
+  // Admin Read
+  @Get('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  findAllAdmin(@Query() query: QueryProductAdminDto) {
+    return this.products.findAllAdmin(query);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  findOneAdmin(@Param('id', ParseUUIDPipe) id: string) {
+    return this.products.findOneAdmin(id);
+  }
+
   // Public
   @Get()
   findAll(@Query() query: QueryProductDto) {
-    return this.products.findAll(query);
+    return this.products.findAllPublic(query);
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.products.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.products.findOnePublic(id);
   }
 
   // Admin Only
@@ -109,6 +125,7 @@ export class ProductController {
   @Delete(':id/image')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @HttpCode(HttpStatus.OK)
   removeImage(@Param('id', ParseUUIDPipe) id: string) {
     return this.products.removeImage(id);
   }
