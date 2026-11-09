@@ -28,13 +28,4 @@ export class QueryProductDto {
   @IsOptional()
   @IsUUID('4')
   category_id?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
-  @IsBoolean({ message: 'is_active harus berupa boolean' })
-  is_active?: boolean;  
 }
