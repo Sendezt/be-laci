@@ -28,7 +28,7 @@ async function bootstrap() {
   // Mengizinkan request dari Next.js
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') ?? true,
-    credential: true,
+    credentials: true,
   });
 
   await app.listen(process.env.PORT ?? 3001);
