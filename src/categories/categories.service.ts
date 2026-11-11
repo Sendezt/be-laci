@@ -4,24 +4,48 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { QueryCategoryDto } from './dto/query-categories.dto';
 
 @Injectable()
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Ambil semua kategori, urutan by name(public endpoint)
-  async findAll() {
-    return this.prisma.categories.findMany({
-      orderBy: {
-        name: 'asc',
+  async findAll(query: QueryCategoryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.categoriesWhereInput = {
+      ...(query.search && {
+        name: { contains: query.search, mode: 'insensitive' },
+      }),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.categories.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+        include: { _count: { select: { products: true } } },
+      }),
+      this.prisma.categories.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      include: {
-        _count: { select: { products: true } },
-      },
-    });
+    };
   }
 
   // Ambil detail 1 kategori + jumlah produk(Public endpoint)
