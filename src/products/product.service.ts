@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { QueryProductDto } from './dto/query-product.dto';
+import { ProductSortOption, QueryProductDto } from './dto/query-product.dto';
 import { QueryProductAdminDto } from './dto/query-product-admin.dto';
 import { filter } from 'rxjs';
 import { transformAuthInfo } from 'passport';
@@ -71,6 +71,8 @@ export class ProductService {
       }),
     };
 
+    const orderBy = this.resolveOrderBy(query.sort);
+
     // Sesuai PRD: pakai $transaction untuk findMany + count
     const [data, total] = await this.prisma.$transaction([
       this.prisma.products.findMany({
@@ -92,6 +94,26 @@ export class ProductService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  private resolveOrderBy(
+    sort?: ProductSortOption,
+  ): Prisma.productsOrderByWithRelationInput[] {
+    switch (sort) {
+      case 'newest':
+        return [{ created_at: 'desc' }, { id: 'desc' }];
+      case 'oldest':
+        return [{ created_at: 'asc' }, { id: 'asc' }];
+      case 'price_asc':
+        return [{ selling_price: 'asc' }, { name: 'asc' }];
+      case 'price_desc':
+        return [{ selling_price: 'desc' }, { name: 'asc' }];
+      case 'name_desc':
+        return [{ name: 'desc' }, { id: 'desc' }];
+      case 'name_asc':
+      default:
+        return [{ name: 'asc' }, { id: 'asc' }];
+    }
   }
 
   //   Ambil detail produk by ID
