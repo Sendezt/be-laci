@@ -9,11 +9,13 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { QueryCategoryDto } from './dto/query-categories.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -24,8 +26,8 @@ export class CategoriesController {
 
   // Public Endpoint
   @Get()
-  findAll() {
-    return this.categories.findAll();
+  findAll(@Query() query: QueryCategoryDto) {
+    return this.categories.findAll(query);
   }
 
   @Get(':id')
